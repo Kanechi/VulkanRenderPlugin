@@ -11,6 +11,9 @@ public class NativeHookFeature : ScriptableRendererFeature
     {
         [DllImport("GfxPluginMyNativePlugin")]
         public static extern IntPtr GetRenderEventFunc();
+
+        [DllImport("GfxPluginMyNativePlugin")]
+        public static extern void SetRenderSize(int width, int height);
     }
 
     class NativeHookPass : ScriptableRenderPass {
@@ -35,6 +38,7 @@ public class NativeHookFeature : ScriptableRendererFeature
             }
 
             var cmd = CommandBufferPool.Get("NativeHookPass");
+            NativeBridge.SetRenderSize(Screen.width, Screen.height);
             cmd.IssuePluginEvent(NativeBridge.GetRenderEventFunc(), 1);
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
