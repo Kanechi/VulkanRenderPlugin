@@ -14,6 +14,9 @@ public class NativeHookFeature : ScriptableRendererFeature
 
         [DllImport("GfxPluginMyNativePlugin")]
         public static extern void SetRenderSize(int width, int height);
+
+        [DllImport("GfxPluginMyNativePlugin")]
+        public static extern void SetColor(float r, float g, float b, float a);
     }
 
     class NativeHookPass : ScriptableRenderPass {
@@ -24,10 +27,19 @@ public class NativeHookFeature : ScriptableRendererFeature
         public NativeHookPass() {
 
             // レンダリングのどの段階でこのパスが実行されるかを指定
-            renderPassEvent = RenderPassEvent.AfterRenderingOpaques;
+            //renderPassEvent = RenderPassEvent.AfterRenderingOpaques;
+            renderPassEvent = RenderPassEvent.AfterRendering;
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData) {
+
+            // プレイ中のみ
+            if (!Application.isPlaying)
+                return;
+
+            // Gameカメラのみ
+            if (renderingData.cameraData.cameraType != CameraType.Game)
+                return;
 
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Vulkan)
                 return;
@@ -38,7 +50,16 @@ public class NativeHookFeature : ScriptableRendererFeature
             }
 
             var cmd = CommandBufferPool.Get("NativeHookPass");
+
+            float t = Time.time;
+            float r = Mathf.Abs(Mathf.Sin(t));
+            float g = Mathf.Abs(Mathf.Sin(t + 2.0f));
+            float b = Mathf.Abs(Mathf.Sin(t + 4.0f));
+
+
             NativeBridge.SetRenderSize(Screen.width, Screen.height);
+            NativeBridge.SetColor(r, g, b, 1.0f);
+
             cmd.IssuePluginEvent(NativeBridge.GetRenderEventFunc(), 1);
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
